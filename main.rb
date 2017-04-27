@@ -43,8 +43,8 @@ unless do_ssh_key_id && do_ssh_key_id != ""
   puts ssh_keys.each_with_index.map{|key, i| "#{i+1}) #{key[:name]} (ID: #{key[:id]})"}.join("\n").yellow
 
   choice = PaydayRunner.ask("Enter your choice: (1/2/3 etc.) ".yellow)
-  ssh_key = ssh_keys[choice.to_i - 1]
-  PaydayRunner.set_config_value(".secrets.yml", "digital_ocean_ssh_key_id", ssh_key[:id])
+  do_ssh_key_id = ssh_keys[choice.to_i - 1][:id]
+  PaydayRunner.set_config_value(".secrets.yml", "digital_ocean_ssh_key_id", do_ssh_key_id)
 end
 
 puts "Creating Digital Ocean droplet...\n".yellow
@@ -52,9 +52,15 @@ puts "Creating Digital Ocean droplet...\n".yellow
 droplet = PaydayRunner.create_droplet(do_token, do_ssh_key_id)
 puts "Droplet with ID #{droplet.id} created successfully!".green
 
-
 ip_address = PaydayRunner.get_droplet_ip(do_token, droplet.id)
 puts "Droplet IP is #{ip_address}".green
+
+Net::SSH.start(ip_address, "root", keys: ["~/.ssh/id_rsa"]) do |ssh|
+  puts "Creating SSH key...".yellow
+  ssh.exec!("rm /root/.ssh/id_rsa") # Log if we actually removed a key
+  output = ssh.exec!("ssh-keygen -b 2048 -t rsa -f /root/.ssh/id_rsa -q -N \"\"")
+  puts "Done.".green
+end
 
 # puts "Destroying droplet..."
 # PaydayRunner.destroy_droplet(do_token, droplet.id)

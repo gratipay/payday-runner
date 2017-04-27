@@ -74,7 +74,7 @@ module PaydayRunner
     # TODO: Only return required fields, don't leak DO type
     do_client.droplets.create(droplet)
 
-    # TEMP: do_client.droplets.find(id: 46391189)
+    # TEMP: do_client.droplets.find(id: 47128371)
   end
 
   def self.destroy_droplet(token, droplet_id)
