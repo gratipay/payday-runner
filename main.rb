@@ -33,16 +33,31 @@ end
 
 puts "\n"
 
-puts "Creating Digital Ocean droplet...".yellow
+# Alternatively, allow user to create key from current system?
+do_ssh_key_id = PaydayRunner.get_config_value(".secrets.yml", "digital_ocean_ssh_key_id")
 
-# Prompt for Digital Ocean key name?
-# do_ssh_keys = PaydayRunner.get_digital_ocean_ssh_keys(do_token)
-do_ssh_key_id = '7943071'
+unless do_ssh_key_id && do_ssh_key_id != ""
+  ssh_keys = PaydayRunner.get_digital_ocean_ssh_keys(do_token)
+
+  puts "Which Digital Ocean SSH key would you like to place on the droplet?".yellow
+  puts ssh_keys.each_with_index.map{|key, i| "#{i+1}) #{key[:name]} (ID: #{key[:id]})"}.join("\n").yellow
+
+  choice = PaydayRunner.ask("Enter your choice: (1/2/3 etc.) ".yellow)
+  ssh_key = ssh_keys[choice.to_i - 1]
+  PaydayRunner.set_config_value(".secrets.yml", "digital_ocean_ssh_key_id", ssh_key[:id])
+end
+
+puts "Creating Digital Ocean droplet...\n".yellow
 
 droplet = PaydayRunner.create_droplet(do_token, do_ssh_key_id)
 puts "Droplet with ID #{droplet.id} created successfully!".green
-ip_address = droplet.networks.v4.first.ip_address
+
+
+ip_address = PaydayRunner.get_droplet_ip(do_token, droplet.id)
 puts "Droplet IP is #{ip_address}".green
+
+# puts "Destroying droplet..."
+# PaydayRunner.destroy_droplet(do_token, droplet.id)
 
 # create Droplet with that key
 # SSH into machine
