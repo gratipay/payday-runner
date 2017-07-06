@@ -63,11 +63,11 @@ module PaydayRunner
     do_client = DropletKit::Client.new(access_token: token)
 
     droplet = DropletKit::Droplet.new(
-      name: 'Payday (Created via payday_runner)',
-      region: 'nyc2',
+      name: 'payday',
+      region: 'nyc1',
       image: 'ubuntu-16-04-x64',
       size: '512mb',
-      tags: ['payday'],
+      tags: ['payday-runner'],
       ssh_keys: [ssh_key_id]
     )
 
@@ -75,6 +75,18 @@ module PaydayRunner
     do_client.droplets.create(droplet)
 
     # TEMP: do_client.droplets.find(id: 47128371)
+  end
+
+  def self.find_existing_droplet(token)
+    do_client = DropletKit::Client.new(access_token: token)
+
+    droplets = do_client.droplets.all(tag_name: 'payday-runner')
+
+    if droplets.count > 1
+      raise 'More than 1 payday droplets found!'
+    end
+
+    droplets.count.zero? ? nil : droplets.first
   end
 
   def self.destroy_droplet(token, droplet_id)
@@ -96,5 +108,14 @@ module PaydayRunner
 
       return ip_address if ip_address
     end
+  end
+
+  def self.clear_github_keys(github_client)
+    keys = github_client.keys.select{ |x| x.title.include?("#payday-runner") }
+    github_client.remove_key(keys.first.id) if keys.first # Delete more than one key!
+  end
+
+  def self.create_github_key(github_client, key)
+    github_client.add_key("Payday #payday-runner", key)
   end
 end
