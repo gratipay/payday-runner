@@ -75,12 +75,15 @@ Net::SSH.start(ip_address, "root", keys: ["~/.ssh/id_rsa"]) do |ssh|
   PaydayRunner.create_github_key(github_client, output)
   puts "Uploaded SSH key to github.".green
 
+  ssh.exec!("git config --global user.name 'Paul Kuruvilla'")
+  ssh.exec!("git config --global user.email 'rohitpaulk@gmail.com'")
+
   ssh.exec!("ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts") { |_, stream, data| puts "[#{stream}] #{data}" }
 
   ssh.exec!("rm -rf gratipay.com") # Log if we removed
   ssh.exec!("git clone git@github.com:gratipay/gratipay.com") { |_, stream, data| puts "[#{stream}] #{data}" }
 
-  # CHECK FOR LOGS!
+  # How to make this reversible?
   ssh.exec!("git clone git@github.com:gratipay/logs") { |_, stream, data| puts "[#{stream}] #{data}" }
 end
 
@@ -89,10 +92,9 @@ end
 
 # create Droplet with that key
 # SSH into machine
-#   - create public/private key pair
-#   - add public/private key pair to Github
-#   - install git
+#   - [x] create public/private key pair
+#   - [x] add public/private key pair to Github
 #   - configure git with username/password?
-#   - git clone gratipay.com
-#   - git clone logs
+#   - [x] git clone gratipay.com
+#   - [x] git clone logs
 #   - enter gratipay repo, run bootstrap.sh
