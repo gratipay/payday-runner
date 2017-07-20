@@ -53,6 +53,14 @@ module PaydayRunner
     # TODO: Figure out exception to catch!
   end
 
+  def self.verify_heroku_token(email, token)
+    begin
+      return PlatformAPI.connect(token).account.info["email"] == email
+    rescue Excon::Error::Unauthorized
+      return false
+    end
+  end
+
   def self.get_digital_ocean_ssh_keys(token)
     do_client = DropletKit::Client.new(access_token: token)
 

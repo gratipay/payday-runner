@@ -7,3 +7,4 @@ gem "droplet_kit", "~> 2.1"
 gem "net-ssh", "~> 3.2"
 
 gem "pry", "~> 0.10"
+gem "platform-api"
