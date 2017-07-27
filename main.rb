@@ -11,31 +11,33 @@ puts "\n"
 puts "Okay! Verifying values in .secrets.yml ...\n".yellow
 
 gh_token = PaydayRunner.get_config_value(".secrets.yml", "github_token")
-puts "Validating Github credentials...".blue
-if PaydayRunner.verify_github_token(gh_token)
-  puts "Valid!".green
-else
-  puts "Github token not valid, aborting!".red
-  exit(1)
-end
-
 do_token = PaydayRunner.get_config_value(".secrets.yml", "digital_ocean_token")
-puts "Validating Digital Ocean credentials...".blue
-if PaydayRunner.verify_digital_ocean_token(do_token)
-  puts "Valid!".green
-else
-  puts "Digital Ocean token not valid, aborting!".red
-  exit(1)
-end
-
 heroku_email = PaydayRunner.get_config_value(".secrets.yml", "heroku_email")
 heroku_token = PaydayRunner.get_config_value(".secrets.yml", "heroku_api_token")
-puts "Validating Heroku credentials...".blue
-if PaydayRunner.verify_heroku_token(heroku_email, heroku_token)
-  puts "Valid!".green
-else
-  puts "Heroku token not valid, aborting!".red
-  exit(1)
+
+cred_verifiers = {
+  'Github': {
+    function: PaydayRunner.method(:verify_github_token),
+    arguments: [gh_token]
+  },
+  'Digital Ocean': {
+    function: PaydayRunner.method(:verify_digital_ocean_token),
+    arguments: [do_token]
+  },
+  'Heroku': {
+    function: PaydayRunner.method(:verify_heroku_token),
+    arguments: [heroku_email, heroku_token]
+  }
+}
+
+cred_verifiers.each do |service_name, verifier|
+  puts "Validating #{service_name} credentials...".blue
+  if verifier[:function].call(*verifier[:arguments])
+    puts "Valid!".green
+  else
+    puts "#{service_name} token not valid, aborting!".red
+    exit(1)
+  end
 end
 
 github_client = Octokit::Client.new(access_token: gh_token)
@@ -81,7 +83,7 @@ PaydayRunner.clear_github_keys(github_client) # Remove any existing keys created
 
 Net::SSH.start(ip_address, "root", keys: ["~/.ssh/id_rsa"]) do |ssh|
   puts "Installing heroku...".yellow
-  ssh.exec!("snap install heroku") { |_, stream, data| puts "[#{stream}] #{data}" }
+  ssh.exec!("snap install heroku --classic") { |_, stream, data| puts "[#{stream}] #{data}" }
   puts "Heroku installed.".green
 
   puts "Setting up heroku auth...".yellow
@@ -99,11 +101,9 @@ NETRC
     ssh.exec!("echo '#{line}' >> ~/.netrc")
   end
 
-  puts "Skipping heroku auth, revisit!".red
-
-  # puts "Verifying heroku auth...".yellow
-  # puts ssh.exec!("heroku info -a gratipay")
-  # puts "Heroku auth verified.".green
+  puts "Verifying heroku auth...".yellow
+  puts ssh.exec!("PATH=$PATH:/snap/bin && heroku info -a gratipay")
+  puts "Heroku auth verified.".green
 
   puts "Creating SSH key...".yellow
   ssh.exec!("rm /root/.ssh/id_rsa") # TODO: Log if we actually removed a key
@@ -142,5 +142,5 @@ end
 #   - [x] git clone logs
 #   - [x] enter gratipay repo, run bootstrap.sh, run tests?
 #   - [x] install heroku
-#   - [ ] heroku login
+#   - [x] heroku login
 #   - [ ] install psql
